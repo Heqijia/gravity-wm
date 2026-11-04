@@ -1,0 +1,4 @@
+name: bench128
+model: {image_size: 128, patch_size: 8, encoder_scale: tiny, embed_dim: 256, action_dim: 3, history_size: 8, predictor_kind: gru, predictor_hidden_dim: 512, predictor_depth: 3, predictor_conditioning: film_concat, predictor_dropout: 0.1}
+objective: {prediction_weight: 0.0, rollout_weight: 1.0, rollout_horizon: 6, rollout_gamma: 0.95, sigreg_weight: 0.09}
+train: {epochs: 1, batch_size: 128, learning_rate: 5.0e-5, muon_learning_rate: 1.0e-4, num_workers: 12, seed: 42, precision: bf16}

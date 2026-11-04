@@ -1,0 +1,30 @@
+# 虚拟环境(7.3 GB)
+.venv-wm/
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# 上游依赖,是独立仓库的 clone:https://github.com/sg-jepa/sg-jepa
+sg-jepa/
+
+# 运行产物。数据集和 checkpoint 在 /fs/scratch 下,本来就不在树内;
+# 这里挡住日志和大的中间 JSON。
+work/logs/
+work/*.json
+work/.done-*
+work/nohup.out
+*.log
+
+# 模型与数据
+*.pt
+*.pth
+*.lance/
+
+# 第三方论文 PDF:15 MB,占仓库 97%,且不是本项目的产出。
+# 需要的话用 `git add -f SemiGroupJEPA.pdf` 单独加回。
+SemiGroupJEPA.pdf
+
+# Slurm 的 stderr 文件
+*.err
