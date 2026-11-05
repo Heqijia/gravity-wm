@@ -435,6 +435,46 @@ The cause is that `stride` is plumbed into `PostTrainConfig`, recorded correctly
 
 Nothing in §6 depended on a strided training result, so no reported number changes. What has to be withdrawn is the implicit claim that the strided objective has been exercised: it has not, on any dataset, and the $m^2$ amplification remains untested in training.
 
+### 6.14 A scene with contacts, and what the constraint can still say in it
+
+Every dataset up to §6.13 is contact-free by construction, because the free-fall identity of Lemma 1 -- the identity the constraint is the residual of -- holds only under uniform acceleration. The physics is therefore a single family: parabolas, exactly, to $7\times10^{-7}$ world units. `bounce_single` adds a floor, so the world model has to learn something the constraint says nothing about, while the constraint keeps its exact meaning on the windows between bounces.
+
+Three measurements decided the design before any of it was built, and all three could have killed the experiment.
+
+| measurement | value | what it decided |
+|---|---|---|
+| free-fall residual *between* contacts, `mj_step` with RK4 at a 0.0005 substep | $7.2\times10^{-7}$ world units, $6.5\times10^{-6}$ px | the integrator can be the source of truth; the constraint loses no signal to drift |
+| residual on a window *spanning* a contact | 1.26 world units, **12.4 px** | such windows must be excluded, not counted as violations: the one-step gravity displacement is 1.008 px |
+| realised restitution | $e = 0.897$ | physical. The first `solref` tried returned $e = 1.60$ -- the object left the floor faster than it arrived |
+
+The restitution has to be *measured*. `solref="0.002 0.05"` gains energy at every bounce, and nothing downstream would have reported that; the generator now measures what it produced and refuses to write a dataset with $e \ge 1$.
+
+**The constraint speaks only where Lemma 1 holds.** That is the whole design, and it needs three filters rather than one.
+
+*The context must be contact-free.* The position form starts its counterfactual rollout from an implied velocity $v = (p_t - p_{t-1})/\mathrm{d}t + g\,\mathrm{d}t/2$ read off the last two context frames, and that read is a free-fall quantity which is wrong across a bounce.
+
+*The counterfactual path must stay off the floor,* and this is tested under $g'$ rather than under $g$. A window that never touches the floor at $g = 4$ can bounce at $g' = 9$, and the identity fails there too. The test is exact, because between contacts the counterfactual path *is* a parabola: the first positive root of $z_0 + v_z s - \tfrac{1}{2}g' s^2 = z_{\text{rest}}$ is $s^* = \big(v_z + \sqrt{v_z^2 + 2g'(z_0 - z_{\text{rest}})}\big)/g'$, and the window is rejected when $s^* \le H\mathrm{d}t$. Verified against `mj_step` on 40 of 40 episodes.
+
+*The tolerance must be calibrated on contact-free windows too.* This one is easy to miss and fatal: $\varepsilon$ is $(1+\rho)$ times the predictor's factual rollout violation, so a bounce inflates it and the constraint goes vacuous. It is the same failure the staged tolerance hit from the other direction in §6.12, where a damaged factual rollout produced $\varepsilon$ at 773 times the original.
+
+Both filters reject without resampling, as the in-frame filter does, so $P$ stays the law Corollary 2 needs with $\kappa = 1$.
+
+The episodes are 32 frames rather than 16, and that was forced by the arithmetic rather than chosen. A $\text{history} + \text{horizon} = 14$ frame window has only three starts in a 16-frame episode, so a bounce anywhere in the context kills most of them: pushing the bounce density up took the constraint-usable share from 93% to 19%. At 32 frames there are 19 starts, and the dataset lands at **51.8% of windows usable by the constraint and 37.8% containing a bounce in the horizon** -- 37% are both, which is the regime the experiment needs.
+
+The gates, all measured before committing a post-training run:
+
+| gate | `bounce_single_r08` | `ball_single` | `cls_s42` (the known failure) |
+|---|---|---|---|
+| probe $h$ | 0.260 px | 0.061 px | 33.429 px |
+| probe $h_{\mathrm{eval}}$ | 0.206 px | 0.195 px | 33.398 px |
+| SNR | **3.88** | 16.5 | 0.03 |
+| $\varepsilon$ | 0.0157 | 0.0137 | — |
+| $C_0/\varepsilon$ | **36.2** | 55.0 | — |
+
+SNR 3.88 is well short of the contact-free models' 8.5--16.5 and well clear of the $[\mathrm{CLS}]$ read-out's 0.03. It is usable, and it is the reason this section's numbers carry less weight than §6.8's.
+
+Getting even that far took two corrections that had nothing to do with the question. The object was generated at `half_size` 0.45 where every other dataset uses 0.80, which is 44% of the diameter and cost the probe a factor of 3.3 (0.870 px, SNR 1.16); and the default pretraining collapsed the representation on this data, which §6.15 covers.
+
 ---
 
 ## 7. How to read a row

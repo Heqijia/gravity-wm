@@ -35,6 +35,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 import numpy as np
+import torch
 
 from gwm.freefall_data import (
     SHAPE_IDS,
@@ -441,14 +442,14 @@ def _dry_run(
 
 
 def counterfactual_hits_floor(
-    position: np.ndarray,
-    velocity: np.ndarray,
-    gravity: np.ndarray,
+    position,
+    velocity,
+    gravity,
     *,
     spec_resting_z: float,
     dt: float,
     horizon: int,
-) -> np.ndarray:
+):
     """Would the counterfactual free-fall path touch the floor inside the horizon?
 
     This is the filter option A needs, and it has to be evaluated under ``g'``
@@ -464,16 +465,33 @@ def counterfactual_hits_floor(
     ``z0 + vz s - g' s^2 / 2 = resting_z`` for the first positive root and
     comparing it against ``horizon * dt`` is exact, because between contacts
     the counterfactual path *is* a parabola.
+
+    Works on torch tensors on any device and on numpy arrays, returning the
+    same type it was given.  The constraint calls it once per step on CUDA
+    tensors and the evaluation calls it on the sweep's batches, so forcing a
+    numpy round trip would both fail on device tensors and copy every step.
     """
+
+    if isinstance(position, torch.Tensor):
+        z0 = position[..., 1].double() - float(spec_resting_z)
+        vz = velocity[..., 1].double()
+        g = gravity.double()
+        span = float(horizon) * float(dt)
+        already = z0 <= 0.0
+        discriminant = vz * vz + 2.0 * g * z0
+        safe_g = torch.where(g > 0.0, g, torch.ones_like(g))
+        root = torch.where(
+            (discriminant >= 0.0) & (g > 0.0),
+            (vz + torch.sqrt(discriminant.clamp_min(0.0))) / safe_g,
+            torch.full_like(g, float("inf")),
+        )
+        return already | (root <= span)
 
     z0 = np.asarray(position, dtype=np.float64)[..., 1] - float(spec_resting_z)
     vz = np.asarray(velocity, dtype=np.float64)[..., 1]
     g = np.asarray(gravity, dtype=np.float64)
     span = float(horizon) * float(dt)
-
     already = z0 <= 0.0
-    # z(s) = z0 + vz s - g s^2 / 2; the first positive root of a downward
-    # parabola through a positive z0 is (vz + sqrt(vz^2 + 2 g z0)) / g.
     with np.errstate(invalid="ignore", divide="ignore"):
         discriminant = vz**2 + 2.0 * g * z0
         root = np.where(
@@ -652,7 +670,27 @@ def generate_bounce_dataset(
         frames_per_episode=spec.frames,
         image_size=image_size,
         image_format=image_format,
-        extra_metadata={"dt": spec.dt, "pixels_per_unit": pixels_per_unit},
+        # The Lance metadata is a separate contract from the manifest, and the
+        # downstream code reads *this* one.  ``train_gravity`` is what the
+        # probe trainer and the tolerance calibration use to tell the training
+        # gravity from a counterfactual, and its absence is an AttributeError
+        # three layers down rather than a missing-key error here.
+        extra_metadata={
+            "dt": spec.dt,
+            "fps": 1.0 / spec.dt,
+            "pixels_per_unit": pixels_per_unit,
+            "scene": {
+                "dt": spec.dt, "frames": spec.frames, "view_height": spec.view_height,
+                "z_center": spec.z_center, "shape": spec.shape,
+                "half_size": spec.half_size, "margin": spec.margin,
+                "floor_z": spec.floor_z, "floor_thickness": spec.floor_thickness,
+                "resting_z": spec.resting_z,
+            },
+            "seed": int(seed),
+            "contact_free": False,
+            "train_gravity": {"mean": train_mean, "std": train_std, "clip_min": 0.1},
+            "test_gravities": [float(value) for value in test_gravities],
+        },
     )
 
     low_x, high_x, low_z, high_z = spec.safe_box()

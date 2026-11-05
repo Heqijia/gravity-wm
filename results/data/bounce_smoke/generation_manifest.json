@@ -1,0 +1,43 @@
+{
+  "task": "bounce_ball",
+  "dt": 0.16,
+  "frames": 32,
+  "image_size": 128,
+  "view_height": 13.0,
+  "pixels_per_unit": 9.846153846153847,
+  "floor_z": 0.8,
+  "resting_z": 1.25,
+  "half_size": 0.45,
+  "episodes": 73,
+  "train_episodes": 48,
+  "heldout_train_gravity_episodes": 8,
+  "train_gravity_mean": 4.0,
+  "train_gravity_std": 0.0,
+  "action_names": [
+    "impulse_x",
+    "impulse_z",
+    "g"
+  ],
+  "physics_substep": 0.0005,
+  "contact_solref": "-5000 -5",
+  "contact_solimp": "0.99 0.999 0.0001",
+  "restitution": {
+    "restitution_median": 0.8965519057432855,
+    "restitution_min": 0.8956166160843695,
+    "restitution_max": 0.8972653188883077,
+    "samples": 24
+  },
+  "history": 8,
+  "horizon": 6,
+  "window_count": 1387,
+  "constraint_usable_windows": 708,
+  "constraint_usable_fraction": 0.5104542177361211,
+  "windows_with_a_bounce_in_the_horizon": 519,
+  "bounce_window_fraction": 0.3741888968997837,
+  "free_fall_residual_max": 1.041076068985082e-06,
+  "free_fall_residual_median": 6.930855635223303e-07,
+  "contact_window_residual_median": 1.3345387529373223,
+  "gravity_step_pixels": 1.008246153846154,
+  "launch_acceptance_rate": 0.4147727272727273,
+  "seed": 7
+}

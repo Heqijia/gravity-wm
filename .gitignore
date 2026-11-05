@@ -28,3 +28,8 @@ SemiGroupJEPA.pdf
 
 # Slurm 的 stderr 文件
 *.err
+
+# 实验结果:JSON 报告是版本化的(见 results/),
+# 但 checkpoint、数据集和逐步训练日志留在 scratch。
+# 用 scripts/export_results.py 重新生成 results/。
+!results/

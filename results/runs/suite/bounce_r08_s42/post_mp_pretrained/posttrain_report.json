@@ -1,0 +1,181 @@
+{
+  "calibration": {
+    "alternative_source": {
+      "c_real_mean": 0.0014377591414054649,
+      "c_real_median": 0.0007882186910137534,
+      "c_real_p95": 0.004619109397754071,
+      "c_real_sem": 8.595910970561176e-05,
+      "c_real_std": 0.002266127343345928,
+      "source": "real_latents",
+      "windows": 695,
+      "windows_dropped_for_contact": 3401,
+      "windows_used": 695
+    },
+    "attainability_gap": 0.11422366659375423,
+    "epsilon": 0.015734032887849025,
+    "epsilon_override": null,
+    "epsilon_scale": 1.0,
+    "eval_probe": {
+      "c_real_mean": 0.023132362531116165,
+      "c_real_median": 0.013385678641498089,
+      "c_real_p95": 0.05958780087530607,
+      "c_real_sem": 0.001745533337074002,
+      "c_real_std": 0.04601723816605586,
+      "source": "factual_rollout",
+      "windows": 695,
+      "windows_dropped_for_contact": 3401,
+      "windows_used": 695
+    },
+    "rho": 0.25,
+    "source": "factual_rollout",
+    "train_probe": {
+      "c_real_mean": 0.01258722631027922,
+      "c_real_median": 0.006893887650221586,
+      "c_real_p95": 0.03614008799195289,
+      "c_real_sem": 0.0009521697924627176,
+      "c_real_std": 0.02510191193926379,
+      "source": "factual_rollout",
+      "windows": 695,
+      "windows_dropped_for_contact": 3401,
+      "windows_used": 695
+    }
+  },
+  "command": {
+    "accel_x_high": 0.0,
+    "accel_x_index": null,
+    "accel_x_low": 0.0,
+    "allow_contact_context": false,
+    "batch_size": 192,
+    "cache": "/fs/scratch/PAS3151/qijia387/gwm/runs/suite/bounce_r08_s42/latents.pt",
+    "checkpoint": "/fs/scratch/PAS3151/qijia387/gwm/runs/suite/bounce_r08_s42/checkpoint.pt",
+    "constraint_batch_size": 384,
+    "constraint_form": "position",
+    "device": "cuda",
+    "ema_decay": 0.9,
+    "epsilon": null,
+    "epsilon_scale": 1.0,
+    "epsilon_source": "factual_rollout",
+    "eval_every": 600,
+    "exit_factor": 0.9,
+    "floor_resting_z": 1.6,
+    "gate": 0.9,
+    "grad_clip": 10000.0,
+    "gravity_high": 9.0,
+    "gravity_low": 1.0,
+    "history": 8,
+    "horizon": 6,
+    "lr": 0.0001,
+    "momentum": 0.0,
+    "no_hysteresis": false,
+    "no_in_frame_filter": false,
+    "no_project": false,
+    "output_dir": "/fs/scratch/PAS3151/qijia387/gwm/runs/suite/bounce_r08_s42/post_mp_pretrained",
+    "penalty_lambda": 1.0,
+    "probe_dir": "/fs/scratch/PAS3151/qijia387/gwm/runs/suite/bounce_r08_s42/probes",
+    "restore_direction": "polyak",
+    "restore_lr": null,
+    "rho": 0.25,
+    "seed": 42,
+    "steps": 0,
+    "stride": 1,
+    "trainable": [
+      "predictor",
+      "pred_proj",
+      "action_encoder"
+    ],
+    "variant": "pretrained"
+  },
+  "diagnostics": {
+    "accel_x_index": null,
+    "accel_x_range": null,
+    "constraint_offsets": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "constraint_terms": 6,
+    "counterfactual_acceptance": NaN,
+    "counterfactual_draws": 0,
+    "dt": 0.16,
+    "dt_effective": 0.16,
+    "gravity_range": [
+      1.0,
+      9.0
+    ],
+    "returned_iterate": "theta_N",
+    "returned_step": -1,
+    "safe_box": [
+      -5.018629150101524,
+      5.018629150101524,
+      1.4813708498984761,
+      11.518629150101525
+    ],
+    "window_count": 304000
+  },
+  "elapsed_seconds": 0.47596374433487654,
+  "epsilon": 0.015734032887849025,
+  "freeze_report": {
+    "frozen_modules_in_eval_mode": true,
+    "frozen_total": 7005378,
+    "normalisation_and_dropout_in_eval": 22,
+    "trainable_modules": [
+      "predictor",
+      "pred_proj",
+      "action_encoder"
+    ],
+    "trainable_parameters": {
+      "action_encoder": 273704,
+      "pred_proj": 1054976,
+      "predictor": 16146179
+    },
+    "trainable_total": 17474859
+  },
+  "history": [],
+  "probes": {
+    "eval_probe_c_real": 0.023132362531116165,
+    "train_probe_c_real": 0.01258722631027922
+  },
+  "safe_box": [
+    -5.018629150101524,
+    5.018629150101524,
+    1.4813708498984761,
+    11.518629150101525
+  ],
+  "summary": {
+    "best_direction_norm": Infinity,
+    "best_step": -1,
+    "clipped_fraction": 0.0,
+    "clipped_steps": 0,
+    "config": {
+      "ema_decay": 0.9,
+      "exit_factor": 0.9,
+      "gate": 0.9,
+      "grad_clip": 10000.0,
+      "hysteresis": true,
+      "lr": 0.0001,
+      "momentum": 0.0,
+      "project": true,
+      "restore_direction": "polyak",
+      "restore_lr": null,
+      "restore_target_factor": 0.8,
+      "use_ema_for_mode": true
+    },
+    "constraint_at_start_over_epsilon": null,
+    "epsilon": 0.015734032887849025,
+    "exceptional_steps": 0,
+    "final_constraint_ema": 0.0,
+    "optimise_steps": 0,
+    "parameter_dimension": 17474859,
+    "projected_fraction": 0.0,
+    "projected_steps": 0,
+    "restore_fraction": 0.0,
+    "restore_lr": null,
+    "restore_steps": 0,
+    "starved_of_optimise_steps": false,
+    "steps": 0
+  },
+  "variant": "pretrained"
+}

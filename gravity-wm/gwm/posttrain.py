@@ -44,6 +44,7 @@ from typing import Any
 import torch
 from torch import nn
 
+from gwm.bounce_data import counterfactual_hits_floor
 from gwm.constraint import (
     ConstraintSpec,
     acceleration_vector,
@@ -520,8 +521,26 @@ def run_post_training(
                 )
             else:
                 target_gravity = batch["gravity"]
-                accepted = torch.ones_like(target_gravity, dtype=torch.bool)
                 target_accel_x = None
+                accepted = torch.ones_like(target_gravity, dtype=torch.bool)
+                if config.floor_resting_z is not None:
+                    # The factual arm needs this filter too, and for the same
+                    # reason: the free-fall identity is false across a bounce
+                    # whatever gravity it is evaluated at.  Leaving it out made
+                    # the factual control measure bounce residuals instead of
+                    # gravity error -- C_0/eps came out at 621 where the
+                    # counterfactual arm, which did filter, sat at 36.2, and
+                    # the sharpest control in the study was reading the wrong
+                    # quantity.
+                    pivot = spec.history - 1
+                    accepted = accepted & ~counterfactual_hits_floor(
+                        batch["state"][:, pivot, :2],
+                        batch["state"][:, pivot, 2:4],
+                        target_gravity,
+                        spec_resting_z=float(config.floor_resting_z),
+                        dt=cache.dt,
+                        horizon=spec.horizon,
+                    )
             if config.contact_free_context and "contact" in batch:
                 # The other half of option A.  ``contact[t]`` covers the
                 # interval from frame ``t`` to ``t+1``, so a context of

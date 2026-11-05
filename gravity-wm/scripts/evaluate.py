@@ -77,6 +77,14 @@ def main() -> None:
         help="action coordinate holding the horizontal acceleration; with it set "
         "the sweep runs over accel_x at a fixed gravity instead of over gravity",
     )
+    parser.add_argument(
+        "--floor-resting-z",
+        type=float,
+        default=None,
+        help="height of the object's centre at rest on the floor; excludes "
+        "sweep windows whose counterfactual would bounce, where the analytic "
+        "switched trajectory is not the truth",
+    )
     parser.add_argument("--accel-x-min", type=float, default=-3.0)
     parser.add_argument("--accel-x-max", type=float, default=3.0)
     parser.add_argument("--accel-x-step", type=float, default=0.5)
@@ -183,6 +191,7 @@ def main() -> None:
         seed=args.seed,
         accel_x_values=sweep_accel_x,
         accel_x_index=args.accel_x_index,
+        floor_resting_z=args.floor_resting_z,
     )
     latent = evaluate_latent_error(
         model, near_training, spec=spec, batch_size=args.batch_size,

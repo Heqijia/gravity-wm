@@ -230,3 +230,114 @@ def test_contact_in_the_context_is_what_disqualifies_a_window() -> None:
         batch = _bounce_batch(contact_at=index, history=history)
         clean = ~batch["contact"][:, : history - 1].any(dim=1)
         assert bool(clean.all()) == (not disqualifies), f"interval {index}"
+
+
+def test_latent_cache_is_built_without_gradients() -> None:
+    """The encoder is frozen here, and a graph over the whole dataset is 78 GB.
+
+    Guarding the decorator rather than trusting it: inserting a helper between
+    ``@torch.no_grad()`` and ``build_latent_cache`` silently moved the
+    decorator onto the helper, and encoding 17344 x 32 frames with the graph
+    live then exhausted an 80 GB card.  Nothing in the output differs, so only
+    the OOM revealed it.
+    """
+
+    import torch
+
+    from gwm import latents
+
+    assert hasattr(latents.build_latent_cache, "__wrapped__"), (
+        "build_latent_cache must be wrapped in torch.no_grad()"
+    )
+    assert not hasattr(latents.read_contact_flags, "__wrapped__"), (
+        "read_contact_flags does not need no_grad and must not be holding the decorator"
+    )
+    assert torch.is_grad_enabled()
+
+
+def test_both_generators_write_the_same_lance_metadata_contract() -> None:
+    """The Lance metadata is a second contract, separate from the manifest.
+
+    Downstream reads this one, and a missing key surfaces as an AttributeError
+    inside the probe trainer rather than as a missing-key error at generation.
+    Comparing the two generators' sources keeps a new scene from quietly
+    shipping a thinner contract than the one everything already assumes.
+    """
+
+    import inspect
+
+    from gwm.bounce_data import generate_bounce_dataset
+    from gwm.freefall_data import generate_freefall_dataset
+
+    def metadata_block(source: str) -> str:
+        """The ``extra_metadata={...}`` literal, brace-balanced.
+
+        Slicing at the first ``},`` instead stops inside the nested
+        ``train_gravity`` dict and silently drops every key after it.
+        """
+
+        start = source.index("extra_metadata={") + len("extra_metadata=")
+        depth, index = 0, start
+        while index < len(source):
+            if source[index] == "{":
+                depth += 1
+            elif source[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    return source[start : index + 1]
+            index += 1
+        raise AssertionError("unbalanced extra_metadata literal")
+
+    bounce = metadata_block(inspect.getsource(generate_bounce_dataset))
+    freefall = metadata_block(inspect.getsource(generate_freefall_dataset))
+    for key in ('"dt"', '"fps"', '"scene"', '"seed"', '"contact_free"',
+                '"train_gravity"', '"test_gravities"'):
+        assert key in freefall, f"freefall no longer writes {key}; update this test"
+        assert key in bounce, f"bounce_data does not write {key} into the Lance metadata"
+
+
+def test_evaluation_excludes_windows_whose_counterfactual_bounces() -> None:
+    """The sweep's ground truth is a parabola and does not know about a floor.
+
+    ``switched_trajectory`` continues straight through the floor, so on a
+    window whose counterfactual would bounce it charges a model for correctly
+    predicting the bounce and credits one that passes through -- inverting the
+    result on exactly the windows the bouncing scene exists to test.  The
+    evaluation therefore has to make the same exclusion the constraint does.
+    """
+
+    import inspect
+
+    from gwm import evaluate
+
+    source = inspect.getsource(evaluate._sweep_one_gravity)
+    assert "floor_resting_z" in source
+    assert "counterfactual_hits_floor" in source
+    assert 'batch["contact"]' in source
+    # and it must be threaded from the public entry point, not only accepted
+    outer = inspect.getsource(evaluate.evaluate_counterfactual_sweep)
+    assert "floor_resting_z=floor_resting_z" in outer
+
+
+def test_the_floor_filter_applies_to_every_constrained_variant() -> None:
+    """Not only the counterfactual arm.
+
+    ``factual`` is the sharpest control in the study -- same constraint, same
+    machinery, evaluated only where there is video -- and it is worthless if it
+    is measuring something else.  With the filter applied only in the
+    counterfactual branch it scored ``C_0/eps = 621`` against the
+    counterfactual arm's 36.2, because every window whose own horizon bounced
+    entered C as a violation.  The identity is false across a bounce at any
+    gravity, including the window's own.
+    """
+
+    import inspect
+
+    from gwm.posttrain import run_post_training
+
+    source = inspect.getsource(run_post_training)
+    counterfactual_branch, factual_branch = source.split('target_gravity = batch["gravity"]')
+    assert "counterfactual_hits_floor" in counterfactual_branch or "floor_resting_z" in counterfactual_branch
+    assert "counterfactual_hits_floor" in factual_branch, (
+        "the factual branch does not apply the floor filter"
+    )

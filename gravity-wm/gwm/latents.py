@@ -252,7 +252,6 @@ def manifest_range(dataset_path: str | Path) -> list[int] | None:
     return None
 
 
-@torch.no_grad()
 def read_contact_flags(dataset_path: str | Path, *, episodes: int, frames: int) -> torch.Tensor:
     """``(E, T)`` contact flags, or all False for a dataset that has no column.
 
@@ -278,6 +277,7 @@ def read_contact_flags(dataset_path: str | Path, *, episodes: int, frames: int) 
     return flags
 
 
+@torch.no_grad()
 def build_latent_cache(
     model: nn.Module,
     dataset_path: str | Path,

@@ -35,6 +35,7 @@ from typing import Any
 import torch
 from torch import nn
 
+from gwm.bounce_data import counterfactual_hits_floor
 from gwm.constraint import (
     ConstraintSpec,
     acceleration_vector,
@@ -157,6 +158,7 @@ def _sweep_one_gravity(  # noqa: PLR0913
     seed: int,
     accel_x_value: float = 0.0,
     accel_x_index: int | None = None,
+    floor_resting_z: float | None = None,
 ) -> GravitySweepRow:
     length = spec.history + spec.horizon
     episode_index, start = cache.windows(length)
@@ -294,6 +296,26 @@ def _sweep_one_gravity(  # noqa: PLR0913
         real_latents = batch["latents"][:, spec.history : spec.history + spec.horizon]
 
         keep = accepted
+        if floor_resting_z is not None:
+            # The same exclusion the constraint makes, for the same reason.
+            # ``switched_trajectory`` is a pure parabola and knows nothing of a
+            # floor, so on a window whose counterfactual would bounce the
+            # "ground truth" continues straight through it.  Scoring against
+            # that would charge a model for correctly predicting the bounce and
+            # credit one that passes through the floor -- it inverts the result
+            # on exactly the windows the bouncing scene is about.
+            keep = keep & ~counterfactual_hits_floor(
+                batch["state"][:, pivot, :2],
+                batch["state"][:, pivot, 2:4],
+                target_gravity,
+                spec_resting_z=float(floor_resting_z),
+                dt=cache.dt,
+                horizon=spec.horizon,
+            )
+        if "contact" in batch:
+            # And the context must be contact-free, so the velocity the switch
+            # starts from is a free-fall quantity.
+            keep = keep & ~batch["contact"][:, : spec.history - 1].any(dim=1)
         count = int(keep.sum())
         accumulate["windows"] += count
         accumulate["violation"] += float(per_sample[keep].double().sum())
@@ -364,6 +386,7 @@ def evaluate_counterfactual_sweep(
     seed: int = 0,
     accel_x_values: list[float] | None = None,
     accel_x_index: int | None = None,
+    floor_resting_z: float | None = None,
 ) -> list[GravitySweepRow]:
     """Counterfactual accuracy across conditioning accelerations.
 
@@ -402,6 +425,7 @@ def evaluate_counterfactual_sweep(
             seed=seed,
             accel_x_value=horizontal,
             accel_x_index=accel_x_index,
+            floor_resting_z=floor_resting_z,
         )
         for gravity, horizontal in pairs
     ]

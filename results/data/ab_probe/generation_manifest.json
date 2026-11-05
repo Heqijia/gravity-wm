@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "task": "approach_ball",
+  "split": "all",
+  "seed": 7,
+  "paper_scale": false,
+  "episodes": 24,
+  "frames_per_episode": 64,
+  "image_size": 128,
+  "fps": 16,
+  "train_episodes": 12,
+  "test_episodes": 12,
+  "dataset": "data.lance",
+  "source": {
+    "source_repository": "semigroup-jepa-data-generator",
+    "task_source_revision": "ecd0759ac2d5fe65b60be99048c761aaca4bd92f",
+    "shared_engine": "approach-catcher-paddle",
+    "source_sha256": {
+      "common.py": "6a220aa014af5e7b4e90392a32783772c5819bd7fd66051dd9d3ec00c1ac44b1",
+      "generate.py": "6a08ff1ece2b4c76339c7bd5baa390f72a22504a1b1f4b31deda2f8c10b0b7fe",
+      "sim_support.py": "b1942881c2bc4e83439aa2c9ff4541a512e80a2da34960283488de7d5af020e9",
+      "render.py": "030698cb2c050897dc9a9e39258a790ef5af556b8b9f66770c35885a9ab0b118",
+      "render_support.py": "87386882848ab0a6598b49bd7621066716c27d607d61ad298ccbed49408941f0",
+      "robot_assets.py": "adc12d2ab878376358a299bf81c1abfdd1a54ef0eea5377ee48e7ee76648cd23",
+      "pack_lance.py": "ddfc9824a6f2d0e5da8f84ab22996e6a6e491150848ed5e62559a9c59ef4282d"
+    }
+  },
+  "asset_manifest": null,
+  "qualitative_reproduction": true,
+  "status": "pass"
+}

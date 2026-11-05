@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "task": "freefall_square",
+  "generator": "gwm.freefall_data",
+  "dataset": "data.lance",
+  "seed": 20261101,
+  "episodes": 57,
+  "train_episodes": 40,
+  "test_episodes": 17,
+  "frames_per_episode": 16,
+  "image_size": 128,
+  "image_format": "png",
+  "dt": 0.16,
+  "scene": {
+    "dt": 0.16,
+    "frames": 16,
+    "view_height": 13.0,
+    "z_center": 6.5,
+    "half_size": 0.7,
+    "margin": 0.45,
+    "mass_range": [
+      0.5,
+      2.0
+    ],
+    "spin_range": [
+      -0.6,
+      0.6
+    ],
+    "angle_range": [
+      -3.141592653589793,
+      3.141592653589793
+    ],
+    "speed_x_range": [
+      -1.6,
+      1.6
+    ],
+    "rise_fraction_range": [
+      0.7,
+      1.3
+    ],
+    "fill_fraction": 0.88,
+    "max_rejections": 400
+  },
+  "action_names": [
+    "impulse_x",
+    "impulse_z",
+    "g"
+  ],
+  "state_names": [
+    "x",
+    "z",
+    "vx",
+    "vz",
+    "theta",
+    "omega",
+    "anchor_x",
+    "anchor_z"
+  ],
+  "test_gravities": [
+    1.0,
+    1.5,
+    2.0,
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    5.5,
+    6.0,
+    6.5,
+    7.0,
+    7.5,
+    8.0,
+    8.5,
+    9.0
+  ],
+  "pixels_per_world_unit": 9.846153846153847,
+  "gravity_step_pixels_at_train_mean": 1.0082461538461538,
+  "max_free_fall_residual": 1.149080830487037e-14,
+  "observed_extent": {
+    "x_min": -5.050625959641508,
+    "x_max": 4.517987083071542,
+    "z_min": 1.5831001864599734,
+    "z_max": 11.41303556634858
+  },
+  "mean_rejection_attempts": 1.0,
+  "safe_box": [
+    -5.0600505063388335,
+    5.0600505063388335,
+    1.4399494936611665,
+    11.560050506338833
+  ],
+  "rise_range": [
+    0.8276797769272417,
+    1.1723202230727583
+  ],
+  "gravity_range": [
+    1.0,
+    9.0
+  ]
+}

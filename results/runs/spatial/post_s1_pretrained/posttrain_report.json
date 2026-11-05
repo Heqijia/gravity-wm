@@ -1,0 +1,161 @@
+{
+  "calibration": {
+    "alternative_source": {
+      "c_real_mean": 1.2142107674356786,
+      "c_real_median": 0.9084369540214539,
+      "c_real_p95": 3.0995396614074706,
+      "c_real_sem": 0.0181353446736641,
+      "c_real_std": 1.151558686726921,
+      "source": "real_latents",
+      "windows": 4032
+    },
+    "attainability_gap": 0.05811408732368006,
+    "epsilon": 26.1169628431237,
+    "eval_probe": {
+      "c_real_mean": 18.813197660895568,
+      "c_real_median": 11.346087455749512,
+      "c_real_p95": 51.062802124023435,
+      "c_real_sem": 0.5654647586713729,
+      "c_real_std": 35.90589903877458,
+      "source": "factual_rollout",
+      "windows": 4032
+    },
+    "rho": 0.25,
+    "source": "factual_rollout",
+    "train_probe": {
+      "c_real_mean": 20.893570274498963,
+      "c_real_median": 13.085735321044922,
+      "c_real_p95": 57.09302806854246,
+      "c_real_sem": 0.5609875059342256,
+      "c_real_std": 35.62160230359198,
+      "source": "factual_rollout",
+      "windows": 4032
+    }
+  },
+  "command": {
+    "batch_size": 192,
+    "cache": "/fs/scratch/PAS3151/qijia387/gwm/runs/spatial/pretrain_s42/latents.pt",
+    "checkpoint": "/fs/scratch/PAS3151/qijia387/gwm/runs/spatial/pretrain_s42/checkpoint.pt",
+    "constraint_batch_size": 384,
+    "device": "cuda",
+    "ema_decay": 0.9,
+    "epsilon_source": "factual_rollout",
+    "eval_every": 200,
+    "exit_factor": 0.9,
+    "gate": 0.9,
+    "grad_clip": 10000.0,
+    "gravity_high": 9.0,
+    "gravity_low": 1.0,
+    "history": 8,
+    "horizon": 6,
+    "lr": 0.0001,
+    "momentum": 0.0,
+    "no_hysteresis": false,
+    "no_in_frame_filter": false,
+    "no_project": false,
+    "output_dir": "/fs/scratch/PAS3151/qijia387/gwm/runs/spatial/post_s1_pretrained",
+    "penalty_lambda": 1.0,
+    "probe_dir": "/fs/scratch/PAS3151/qijia387/gwm/runs/spatial/pretrain_s42/probes",
+    "restore_direction": "eps",
+    "restore_lr": null,
+    "rho": 0.25,
+    "seed": 42,
+    "steps": 4000,
+    "stride": 1,
+    "trainable": [
+      "predictor",
+      "pred_proj",
+      "action_encoder"
+    ],
+    "variant": "pretrained"
+  },
+  "diagnostics": {
+    "constraint_offsets": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "constraint_terms": 6,
+    "counterfactual_acceptance": NaN,
+    "counterfactual_draws": 0,
+    "dt": 0.16,
+    "dt_effective": 0.16,
+    "gravity_range": [
+      1.0,
+      9.0
+    ],
+    "returned_iterate": "theta_N",
+    "returned_step": -1,
+    "safe_box": [
+      -4.918629150101523,
+      4.918629150101523,
+      1.5813708498984766,
+      11.418629150101523
+    ],
+    "window_count": 48000
+  },
+  "elapsed_seconds": 2.3249242631718516,
+  "epsilon": 26.1169628431237,
+  "freeze_report": {
+    "frozen_modules_in_eval_mode": true,
+    "frozen_total": 7005378,
+    "normalisation_and_dropout_in_eval": 22,
+    "trainable_modules": [
+      "predictor",
+      "pred_proj",
+      "action_encoder"
+    ],
+    "trainable_parameters": {
+      "action_encoder": 273704,
+      "pred_proj": 1054976,
+      "predictor": 16146179
+    },
+    "trainable_total": 17474859
+  },
+  "history": [],
+  "probes": {
+    "eval_probe_c_real": 18.813197660895568,
+    "train_probe_c_real": 20.893570274498963
+  },
+  "safe_box": [
+    -4.918629150101523,
+    4.918629150101523,
+    1.5813708498984766,
+    11.418629150101523
+  ],
+  "summary": {
+    "best_direction_norm": Infinity,
+    "best_step": -1,
+    "clipped_fraction": 0.0,
+    "clipped_steps": 0,
+    "config": {
+      "ema_decay": 0.9,
+      "exit_factor": 0.9,
+      "gate": 0.9,
+      "grad_clip": 10000.0,
+      "hysteresis": true,
+      "lr": 0.0001,
+      "momentum": 0.0,
+      "project": true,
+      "restore_direction": "eps",
+      "restore_lr": null,
+      "restore_target_factor": 0.8,
+      "use_ema_for_mode": true
+    },
+    "epsilon": 26.1169628431237,
+    "exceptional_steps": 0,
+    "final_constraint_ema": 0.0,
+    "optimise_steps": 0,
+    "parameter_dimension": 17474859,
+    "projected_fraction": 0.0,
+    "projected_steps": 0,
+    "restore_fraction": 0.0,
+    "restore_lr": null,
+    "restore_steps": 0,
+    "steps": 0
+  },
+  "variant": "pretrained"
+}

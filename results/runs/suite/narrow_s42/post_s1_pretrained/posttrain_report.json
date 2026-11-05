@@ -1,0 +1,164 @@
+{
+  "calibration": {
+    "alternative_source": {
+      "c_real_mean": 0.6003247372138625,
+      "c_real_median": 0.48473191261291504,
+      "c_real_p95": 1.3389496505260445,
+      "c_real_sem": 0.010196208364228306,
+      "c_real_std": 0.4995101560691456,
+      "source": "real_latents",
+      "windows": 2400
+    },
+    "attainability_gap": 0.07945157108993661,
+    "epsilon": 9.44482168474545,
+    "epsilon_scale": 1.0,
+    "eval_probe": {
+      "c_real_mean": 10.768492483248313,
+      "c_real_median": 8.59207534790039,
+      "c_real_p95": 24.153751087188713,
+      "c_real_sem": 0.2860139531619575,
+      "c_real_std": 14.011764891261663,
+      "source": "factual_rollout",
+      "windows": 2400
+    },
+    "rho": 0.25,
+    "source": "factual_rollout",
+    "train_probe": {
+      "c_real_mean": 7.555857347796361,
+      "c_real_median": 5.8557939529418945,
+      "c_real_p95": 16.746200561523427,
+      "c_real_sem": 0.24582248746410462,
+      "c_real_std": 12.042793231775413,
+      "source": "factual_rollout",
+      "windows": 2400
+    }
+  },
+  "command": {
+    "batch_size": 192,
+    "cache": "/fs/scratch/PAS3151/qijia387/gwm/runs/suite/narrow_s42/latents.pt",
+    "checkpoint": "/fs/scratch/PAS3151/qijia387/gwm/runs/suite/narrow_s42/checkpoint.pt",
+    "constraint_batch_size": 384,
+    "constraint_form": "acceleration",
+    "device": "cuda",
+    "ema_decay": 0.9,
+    "epsilon_scale": 1.0,
+    "epsilon_source": "factual_rollout",
+    "eval_every": 200,
+    "exit_factor": 0.9,
+    "gate": 0.9,
+    "grad_clip": 10000.0,
+    "gravity_high": 9.0,
+    "gravity_low": 1.0,
+    "history": 8,
+    "horizon": 6,
+    "lr": 0.0001,
+    "momentum": 0.0,
+    "no_hysteresis": false,
+    "no_in_frame_filter": false,
+    "no_project": false,
+    "output_dir": "/fs/scratch/PAS3151/qijia387/gwm/runs/suite/narrow_s42/post_s1_pretrained",
+    "penalty_lambda": 1.0,
+    "probe_dir": "/fs/scratch/PAS3151/qijia387/gwm/runs/suite/narrow_s42/probes",
+    "restore_direction": "polyak",
+    "restore_lr": null,
+    "rho": 0.25,
+    "seed": 42,
+    "steps": 4000,
+    "stride": 1,
+    "trainable": [
+      "predictor",
+      "pred_proj",
+      "action_encoder"
+    ],
+    "variant": "pretrained"
+  },
+  "diagnostics": {
+    "constraint_offsets": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "constraint_terms": 6,
+    "counterfactual_acceptance": NaN,
+    "counterfactual_draws": 0,
+    "dt": 0.16,
+    "dt_effective": 0.16,
+    "gravity_range": [
+      1.0,
+      9.0
+    ],
+    "returned_iterate": "theta_N",
+    "returned_step": -1,
+    "safe_box": [
+      -4.918629150101523,
+      4.918629150101523,
+      1.5813708498984766,
+      11.418629150101523
+    ],
+    "window_count": 48000
+  },
+  "elapsed_seconds": 0.7014453751035035,
+  "epsilon": 9.44482168474545,
+  "freeze_report": {
+    "frozen_modules_in_eval_mode": true,
+    "frozen_total": 7005378,
+    "normalisation_and_dropout_in_eval": 22,
+    "trainable_modules": [
+      "predictor",
+      "pred_proj",
+      "action_encoder"
+    ],
+    "trainable_parameters": {
+      "action_encoder": 273704,
+      "pred_proj": 1054976,
+      "predictor": 16146179
+    },
+    "trainable_total": 17474859
+  },
+  "history": [],
+  "probes": {
+    "eval_probe_c_real": 10.768492483248313,
+    "train_probe_c_real": 7.555857347796361
+  },
+  "safe_box": [
+    -4.918629150101523,
+    4.918629150101523,
+    1.5813708498984766,
+    11.418629150101523
+  ],
+  "summary": {
+    "best_direction_norm": Infinity,
+    "best_step": -1,
+    "clipped_fraction": 0.0,
+    "clipped_steps": 0,
+    "config": {
+      "ema_decay": 0.9,
+      "exit_factor": 0.9,
+      "gate": 0.9,
+      "grad_clip": 10000.0,
+      "hysteresis": true,
+      "lr": 0.0001,
+      "momentum": 0.0,
+      "project": true,
+      "restore_direction": "polyak",
+      "restore_lr": null,
+      "restore_target_factor": 0.8,
+      "use_ema_for_mode": true
+    },
+    "epsilon": 9.44482168474545,
+    "exceptional_steps": 0,
+    "final_constraint_ema": 0.0,
+    "optimise_steps": 0,
+    "parameter_dimension": 17474859,
+    "projected_fraction": 0.0,
+    "projected_steps": 0,
+    "restore_fraction": 0.0,
+    "restore_lr": null,
+    "restore_steps": 0,
+    "steps": 0
+  },
+  "variant": "pretrained"
+}
