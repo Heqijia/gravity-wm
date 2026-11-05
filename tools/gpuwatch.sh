@@ -203,11 +203,27 @@ ensure_collector() { # ensure_collector <jobid> <node> <gpucount>
   COLLECTOR_PIDS+=("$!")
 }
 
-snapshot_direct() { # fallback: one srun per refresh
+snapshot_direct() { # fallback: one srun per refresh, then ssh
   local jobid=$1 node=$2 count=$3
-  srun --jobid="$jobid" --overlap -n1 --cpus-per-task=1 --gres=gpu:"$count" \
-    nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw,power.limit,uuid \
-    --format=csv,noheader,nounits 2>/dev/null > "$STATE/$node.gpu"
+  local q=index,name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw,power.limit,uuid
+  local tmp="$STATE/$node.gpu.tmp"
+  # ssh first, srun second.  When the controller restarts, every srun into an
+  # existing allocation fails with a protocol authentication error while the
+  # node itself stays healthy -- and it fails slowly, taking long enough that
+  # two nodes could not both be refreshed within one interval, so the second
+  # node was never written at all.  On 2026-11-05 this cache therefore sat
+  # frozen at the pre-restart snapshot for three hours, reporting idle cards
+  # that were in fact at 96%.  ssh answers in about two seconds.
+  # -n matters: this runs inside `while read ... done < <(my_gpu_jobs)`, and an
+  # ssh without it reads the remaining job lines off that stdin, so the second
+  # node is silently dropped from every refresh.
+  timeout 15 ssh -n -q -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=8 \
+    "$node" "nvidia-smi --query-gpu=$q --format=csv,noheader,nounits" 2>/dev/null > "$tmp"
+  if [ ! -s "$tmp" ]; then
+    srun --jobid="$jobid" --overlap -n1 --cpus-per-task=1 --gres=gpu:"$count" \
+      nvidia-smi --query-gpu="$q" --format=csv,noheader,nounits 2>/dev/null > "$tmp"
+  fi
+  if [ -s "$tmp" ]; then mv -f "$tmp" "$STATE/$node.gpu"; else rm -f "$tmp"; fi
   : > "$STATE/$node.proc"
 }
 

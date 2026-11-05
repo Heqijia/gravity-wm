@@ -33,3 +33,6 @@ SemiGroupJEPA.pdf
 # 但 checkpoint、数据集和逐步训练日志留在 scratch。
 # 用 scripts/export_results.py 重新生成 results/。
 !results/
+
+# NFS 在删除仍被进程打开的文件时留下的占位符(kill 监控时产生)
+.nfs*

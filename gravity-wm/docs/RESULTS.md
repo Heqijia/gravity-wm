@@ -202,6 +202,8 @@ In Definition 1's form the full method is **worse than doing nothing**. Two inde
 
 ### 6.3 The certificate: what separates the method from a penalty
 
+> **Qualified by §6.18.** Every penalty row here is 4000 steps. Given 36000 on `ball_narrow` a fixed $\lambda = 1$ reaches 5.670 px and a response of 0.768, within 36% of the method, so "the penalty needs a two-order sweep to get inside at all" holds in the regime where the data carries no gravity information, and not generally.
+
 $C/\varepsilon$ at the returned iterate, measured in the run's own constraint form.
 
 | configuration | $C/\varepsilon$ s42 | $C/\varepsilon$ s43 | certified | pos far | JEPA L |
@@ -316,6 +318,8 @@ Two consequences follow, and both are now acted on rather than discovered the ha
 
 ### 6.8 `ball_square` at the budget its $C_0/\varepsilon$ implied
 
+> **Budget note (§6.18).** The baselines in this section ran 4000 steps against the method's 24000. Rerun at 24000 they barely move -- continued training goes from 26.284 px to 26.171 -- so the matched factor is 11.9x against this section's 12.1x.
+
 The rotating square is the first environment where the step budget was sized from $C_0/\varepsilon$ *before* the runs were committed rather than after a wasted one, and it produced the strongest result in the study. At the default 4000 steps the run spent every step in RESTORE, never reached OPTIMISE, and drove the JEPA loss from 11.45 to 72.35; §6.7 predicted that from $C_0/\varepsilon = 100.9$ alone. At 24000 steps the same configuration lands inside the tolerance and improves *both* axes at once.
 
 | configuration | steps | pos in | pos OOD | pos far | resp far | slope | JEPA $L$ |
@@ -334,6 +338,8 @@ Comparing the 4000-step and 24000-step rows isolates what the budget actually bu
 The staged-tolerance arm is a weaker result that should not be read as a success. Stage one, at $\varepsilon \times 8$, did reach feasibility and is one of only two counterfactual runs in the whole study that certified — but at a tolerance eight times looser than the calibrated one, and its far-field error is 6.860 px, three times the 24000-step run's. Stage two then starved (0 OPTIMISE steps) and ended at $L = 64.861$. Annealing the tolerance is not what fixed this environment; budget is.
 
 ### 6.9 The certificate is blocked by a generalisation gap, not by the step budget
+
+> **Budget note (§6.18).** The 12000- and 36000-step rows here are compared against 4000-step baselines. Matched, the factors are 11.2x on `ball_single` and 6.8x on `ball_narrow`, and a fixed penalty at 36000 steps nearly closes the gap on `ball_narrow` -- which §6.3's reading of the penalty does not anticipate.
 
 This corrects §6.7. That section attributes the missing feasibility certificate on `ball_narrow` and `ball_single` to the step budget, on the evidence that more budget moves $C/\varepsilon$ monotonically toward the tolerance. The first half of that is right and the conclusion drawn from it is wrong. Budget does drive the *training-time* constraint below $\varepsilon$, and the certificate still does not appear, because `evaluate.py` re-measures $C$ independently on held-out windows and tests $C_{\text{eval}} \le (1 + \zeta_c)\varepsilon$ there.
 
@@ -475,6 +481,193 @@ SNR 3.88 is well short of the contact-free models' 8.5--16.5 and well clear of t
 
 Getting even that far took two corrections that had nothing to do with the question. The object was generated at `half_size` 0.45 where every other dataset uses 0.80, which is 44% of the diameter and cost the probe a factor of 3.3 (0.870 px, SNR 1.16); and the default pretraining collapsed the representation on this data, which §6.15 covers.
 
+### 6.15 On the bouncing data the default pretraining collapses the representation
+
+The first bouncing model probed at 0.870 px with SNR 1.16, against 0.061 px and SNR 16.5 on `ball_single`. The obvious reading was undertraining -- it had 7 epochs to the baselines' 40, the number chosen to match gradient steps once 32-frame episodes gave 19 windows each instead of 3. Probing intermediate checkpoints says otherwise.
+
+| checkpoint | probe | SNR | validation rollout |
+|---|---|---|---|
+| epoch 1 | 0.366 px | 2.75 | 0.0412 |
+| epoch 4 | **0.164 px** | **6.16** | 0.0576 |
+| epoch 7 | 0.870 px | 1.16 | **0.0178** |
+
+**The probe degrades by a factor of 5.3 from epoch 4 to epoch 7 while the rollout loss improves by 3.2.** The model is getting better at predicting latents and worse at carrying position in them, which is representation collapse rather than overfitting -- the training loss rises too, from 0.188 at epoch 2 to 0.286 at epoch 5.
+
+The `sigreg` term identifies it, because that is the term that exists to prevent it.
+
+| run | `sigreg` over training | validation loss best at |
+|---|---|---|
+| `ball_single` | 3.570 → **2.905** (falls) | the last epoch |
+| `ball_sq_single` | 3.713 → **2.838** (falls) | the last epoch |
+| bouncing, default weight 0.09 | 7.212 → **9.400** (rises) | **epoch 1 of 7** |
+| bouncing, weight 0.5 | 4.383 → **4.280** (stable) | the last epoch |
+
+On the contact-free datasets `sigreg` falls over training. On the bouncing data it starts at twice the baseline value and rises. Raising `sigreg_weight` from 0.09 to 0.5 is therefore the matched remedy rather than a blind sweep, and it works: the term returns to the baseline range, the validation loss again improves monotonically, and the probe becomes monotonic in depth -- 0.413 → 0.381 → 0.260 px at epochs 2, 4, 7, against the default arm's non-monotonic 0.547 → 0.228 → 0.389.
+
+Training further keeps helping. At 21 epochs the probe reaches **0.130 px with SNR 7.73**, within reach of `narrow_s42`'s 8.5, and $\varepsilon$ falls from 0.607 to 0.243. The intermediate points are noisy (2.85, 3.77, 2.84, 7.73 at epochs 10, 14, 18, 21), so the last value alone would not be convincing; what supports it is the validation curve, which falls monotonically from its epoch-5 peak of 2.904 to 2.231 and flattens over the last three epochs while the rollout loss drops fastest there, 0.0573 → 0.0377 → 0.0247 → 0.0175.
+
+**A contact-free control at the same episode length rules out the obvious confound.** The bouncing episodes are 32 frames and give 19 windows each, against 16 frames and 3 windows on the contact-free sets, so episode length and window count move together with the presence of contacts and the attribution above could be an artefact of either. `single_far` (§6.19) separates them: 32 frames, 19 windows per episode, no contacts. Its `sigreg` falls over training, 11.57 → 10.75, its validation loss is best at the last epoch, and its probe reaches 0.057 px without any adjustment to the weight. **It is the contacts, not the length of the episode.**
+
+Raising the weight is also not a free default. On `single_far` the 0.5 arm is distinctly worse than 0.09 -- probe 0.180 px against 0.057, SNR 1.82 against 5.80 -- so `sigreg_weight` is a remedy for a specific failure, not a knob that is safe to raise in general.
+
+Two things follow. The headline of §6.14 was measured at SNR 3.88 and a better foundation exists, so those numbers are a floor rather than the method's best on this scene. And `sigreg_weight` is a dataset-dependent knob that the contact-free experiments never had to touch, which is worth knowing before this method is applied to data with contacts.
+
+### 6.16 Past the training horizon, and where the question stops being askable
+
+Every horizon curve so far stops at $h = 6$, which is the rollout horizon training uses. It is not a choice: the contact-free episodes are 16 frames and the protocol needs $\text{history} + \text{horizon} \le 16$ with $\text{history} = 8$, so $h = 8$ is the hard ceiling. Evaluations at that ceiling exist for every model and had not been read.
+
+`ball_single`, far band $g' \ge 7$, position RMSE in px:
+
+| variant | $h{=}1$ | $h{=}2$ | $h{=}4$ | $h{=}6$ | $h{=}7$ | $h{=}8$ | $h_8/h_6$ |
+|---|---|---|---|---|---|---|---|
+| `pretrained` | 2.74 | 4.00 | 8.69 | 21.91 | 31.81 | 43.81 | 2.00 |
+| continued JEPA | 2.90 | 4.19 | 8.32 | 20.96 | 30.64 | 42.42 | 2.02 |
+| constrained at $g'=g$ | 2.74 | 3.97 | 8.65 | 21.89 | 31.79 | 43.78 | 2.00 |
+| penalty $\lambda = 1$ | 0.78 | 1.91 | 7.61 | 17.51 | 24.04 | 32.02 | 1.83 |
+| **full method** | **1.03** | **1.20** | **1.40** | **2.34** | **4.16** | **8.12** | **3.47** |
+
+The absolute advantage survives the boundary: at $h = 6$ the method is 9.4 times better than the pretrained model and at $h = 8$ it is still 5.4 times better. On `ball_narrow` the same holds, 11.72 px against 42.62.
+
+The rate does not. Every baseline grows by a factor near 2 from $h = 6$ to $h = 8$; the method grows by **3.47** on `ball_single` and **3.78** on `ball_narrow`. Inside the training horizon the method's curve is nearly flat -- 1.03 to 2.34 px over six steps -- and it steepens as soon as it leaves. That is what should happen: the constraint is defined and enforced at $\text{horizon} = 6$, so steps 7 and 8 are outside anything it says.
+
+**Beyond $h = 8$ the question cannot be asked in these scenes, and the obstacle is geometric rather than a matter of budget.** On the bouncing dataset, which has 32-frame episodes and so admits $h$ up to 24, the counterfactual floor filter leaves this many windows:
+
+| $h$ | windows at $g' = 1$ | at $g' = 4$ (training) | at $g' \ge 7$ |
+|---|---|---|---|
+| 6 | 1508 | 1042 | 280–553 |
+| 12 | 407 | **0** | **0** |
+
+At $h = 12$ the horizon spans 1.92 s, and an object falling from a typical launch height reaches the floor in about 1.3 s at $g = 4$ and sooner above it. Every counterfactual path in the far band touches down inside the window, the free-fall identity does not hold there, and the filter correctly rejects all of them. The far band -- the band every result in this document reports -- is empty, not merely thin.
+
+**Nor can the horizon be bought by shortening the context.** A window of $\text{history}\,4 + \text{horizon}\,12$ fits inside the existing 16-frame episodes, which would give $h = 12$ with no new data and no new pretraining. `rollout_latents` accepts a 4-frame window without complaint, so the shortcut looks free. The control says otherwise -- shortening the context at an unchanged horizon of 6:
+
+| variant | context | pos far | resp far |
+|---|---|---|---|
+| counterfactual | 8 | **2.433** | **0.935** |
+| counterfactual | **4** | **44.883** | **0.068** |
+| `pretrained` | 8 | 28.181 | −0.430 |
+| `pretrained` | 4 | 39.793 | −0.004 |
+
+The predictor is built with `num_frames = 8` and genuinely uses them: with four it returns to gravity-blind, and the constrained model loses everything the constraint gave it. An $h = 12$ curve measured that way would be a crippled model's curve, not an extrapolation. The far band is empty at $h = 12$ there in any case -- zero windows at $g' = 9$, for the same in-frame reason as the bouncing scene.
+
+The contact-free scenes have the same limit in a different guise: the view is 13 world units tall, and at $g' = 9$ an object crosses it in about 1.7 s, roughly ten steps of $\mathrm{d}t$. Asking about $h = 12$ there means asking about an object that has left the frame. Reaching further would need a scene built at a larger spatial scale, and a taller view makes the object smaller in the image, which costs probe accuracy -- the trade §6.15 already paid once. $h = 8$ is the honest limit of the present geometry.
+
+### 6.17 The bouncing result, at a budget both arms were given
+
+The method needs 36000 steps here, because $C_0/\varepsilon = 36.2$ and 12000 leaves it starved: zero OPTIMISE steps, $C/\varepsilon$ down only to 6.48, and a JEPA loss of 228. That reasoning sets the *method's* budget and says nothing about the baselines', so the first version of this table compared 36000 steps against 4000 and reported a factor that partly measured compute. Both arms are reported at both budgets here.
+
+**All five arms at 36000 steps**, $n = 2$ for the method and $n = 1$ for the rest:
+
+| configuration | pos in | pos OOD | pos far | resp far | slope | JEPA $L$ |
+|---|---|---|---|---|---|---|
+| `pretrained` (0 steps) | 3.272 | 22.154 | 26.171 | −0.359 | +6.167 | 32.18 |
+| continued JEPA | 3.082 | 15.680 | **18.868** | **−0.025** | +4.616 | 18.31 |
+| constrained at $g'=g$ | 3.050 | 19.013 | 22.968 | −0.184 | +5.756 | 18.01 |
+| penalty $\lambda = 1$ | 2.884 | 14.329 | **16.634** | 0.086 | +4.006 | 17.72 |
+| **counterfactual** | **1.519** | **2.924** | **2.989** | **0.900** | **+0.465** | 31.20 |
+
+**6.3x against continued training and 5.6x against the penalty, not the 8.8x the comparison with `pretrained` gives** -- `pretrained` takes no steps at all and is a floor, not a baseline.
+
+The accuracy factor is the less interesting half. Every baseline is still gravity-blind after 36000 steps: continued training reaches a response of −0.025, the factual arm −0.184, the penalty 0.086. The counterfactual arm reaches **0.900**, where 1.0 is exact. That is a difference in kind rather than degree, and the slope column says it in the units Theorem 2 separates: +0.465 against +4.0 to +5.8.
+
+The factual control keeps its edge. Same constraint, same machinery, same 36000 steps, evaluated only where there is video: 22.968 px and a response of −0.184. The gain comes from counterfactual evaluation, not from having a constraint.
+
+**The method pays for it in the world model, and on this scene it pays visibly.**
+
+| | JEPA $L$ | OPTIMISE steps of 36000 |
+|---|---|---|
+| continued JEPA | 18.31 | 36000 |
+| constrained at $g'=g$ | 18.01 | 35879 |
+| penalty $\lambda = 1$ | 17.02 | 36000 |
+| **counterfactual**, seed 42 | **33.60** | **228** |
+| **counterfactual**, seed 43 | 23.32 | 2161 |
+
+The baselines spend every step descending $L$ and reach 17--18. The counterfactual arm spends almost all of its budget in RESTORE -- 228 OPTIMISE steps out of 36000 on one seed -- and ends at 31.20 on average, barely below the pretrained 32.18. The constraint consumes the budget; there is little left to optimise the world model with.
+
+That trade does not appear on the contact-free scenes. On `square_single` at 24000 steps the method reaches 2.192 px *and* takes $L$ from 11.88 to 8.74, better on both axes. The difference is that $C$ descends far more slowly here: 36000 steps bring $C/\varepsilon$ from 36.2 only to 0.97, where `single_s42` went from 55.0 to 0.73 in 12000.
+
+At the matched 12000 the ordering is the same and the gap is smaller: the method gives 9.193 px and a response of 0.884 against continued training's 28.825 and −0.530. Its JEPA loss there is 228.04, which is the starved intermediate state rather than a settled cost -- the 36000-step run shows it recovering to 31.20.
+
+**What the counterfactual asks is still free fall.** Changing the scene changed what the world model must learn, not what the constraint asks: the target is $p^*(s) = p_0 + v_0 s + \tfrac{1}{2}(a_x, -g')s^2$, a parabola with no floor in it. Windows whose counterfactual would bounce are rejected, which is the design of §6.14 and not an omission. So this section establishes that the free-fall constraint survives in a world containing contacts; it establishes nothing about whether the method could teach a counterfactual *bounce* -- that question was never posed, and posing it would need the restitution inside the identity.
+
+### 6.18 Every long run, against a baseline given the same budget
+
+Four models compared a long counterfactual run against 4000-step baselines: `ball_single` and `ball_narrow` at 36000 against 4000, `square_single` and `ball_ax` at 24000 against 4000. The reasoning that set the method's budget came from $C_0/\varepsilon$ and said nothing about the baselines', so those rows reported a factor that partly measured compute. Every baseline has now been rerun at its model's own budget.
+
+| model | budget | method vs continued JEPA, matched | previously reported, against `pretrained` |
+|---|---|---|---|
+| `ball_single` | 36000 | **11.2x** | 10.3x |
+| `ball_narrow` | 36000 | **6.8x** | 9.0x |
+| `square_single` | 24000 | **11.9x** | 12.1x |
+| `bounce_single_r08` | 36000 | **6.3x** | 8.8x |
+
+**No conclusion is overturned.** Two factors rise slightly, because the baselines barely move with six to nine times the budget; two fall, because on those datasets the baselines genuinely improve. The direction and the mechanism are unchanged in all four.
+
+Where the baselines do and do not benefit is itself informative. On `square_single` continued training goes from 26.284 px at 4000 steps to 26.171 at 24000 -- 0.4% for six times the compute -- and on `ball_single` from 27.3 to 27.146. Those datasets hold the training gravity exactly constant, so there is nothing in them for more optimisation to find. On `bounce_single_r08`, whose 32-frame episodes give 19 windows per episode instead of 3, continued training improves from 28.825 px to 18.868 and its response from −0.530 to −0.025. The budget mismatch inflated the result there and not elsewhere, which could not have been known without running it.
+
+**One row changes the story rather than the number.** On `ball_narrow` at 36000 steps:
+
+| `ball_narrow`, 36000 steps | pos far | resp far | slope | JEPA $L$ |
+|---|---|---|---|---|
+| continued JEPA | 28.187 | −0.439 | +6.324 | 6.33 |
+| constrained at $g'=g$ | 28.139 | −0.436 | +6.307 | 6.10 |
+| **penalty $\lambda = 1$** | **5.670** | **0.768** | +1.360 | 6.90 |
+| **counterfactual** | **4.171** | **0.874** | +0.869 | 6.24 |
+
+At 4000 steps the fixed penalty reads 17.5 px with a response of 0.08 -- indistinguishable from the gravity-blind baselines, which is how §6.3 describes it. At 36000 it reaches 5.670 px and 0.768, within 36% of the method. **A fixed $\lambda = 1$, given enough budget, very nearly closes the gap on `ball_narrow`.**
+
+It does not on `ball_single`, where the penalty stays at 17.046 px and a response of 0.081 against the method's 2.431 and 0.921, a factor of seven. The difference is what the training data holds: `ball_narrow` still varies gravity by $\sigma = 0.05$, which a penalty can eventually exploit, and `ball_single` holds it exactly fixed, which leaves nothing to exploit. So §6.3's claim -- that the penalty needs a two-order sweep of $\lambda$ to get inside the tolerance at all -- survives, but its force is confined to the regime where the data carries no gravity information whatsoever.
+
+**`ball_ax` moves the other way, and that is consistent with §6.12.** More budget makes it worse: 9.111 px and a response of 0.873 at 4000 steps, against 11.638 px and 0.664 at 24000, with the JEPA loss going from $1.3 \times 10^6$ to $7.9 \times 10^{12}$. Its baselines at 24000 behave normally -- continued training 26.697 px, the penalty 22.329 -- so the degradation belongs to the constrained arm. That is the signature §6.12 reports: on this checkpoint RESTORE descends $C$ slowly and damages the predictor quickly, so a larger budget buys more damage rather than more feasibility.
+
+### 6.19 Three times the training horizon, on a scene built to allow it
+
+§6.16 reports that $h = 8$ is the ceiling of the existing scenes and that the obstacle is geometric. Keeping the counterfactual in frame for $H$ steps needs a view of roughly $g'(H\,\mathrm{d}t)^2/2$, and the signal $g\,\mathrm{d}t^2$ measured in pixels is $\text{image}/\text{view}$ times that, so **the signal falls as $1/H^2$ and no choice of $g$ or $\mathrm{d}t$ escapes it.** `single_far` pays that cost deliberately: the view is 40 world units instead of 13, the episodes are 32 frames, and the ball's radius scales with the view so it keeps its size in pixels. Training still rolls out 6 steps, so 12 and 18 are extrapolation.
+
+The scaling worked as predicted, which is worth stating because the comparable prediction for the bouncing scene was wrong by a factor of three:
+
+| | predicted | measured |
+|---|---|---|
+| signal $g\,\mathrm{d}t^2$ | 0.328 px | 0.328 px |
+| probe accuracy | ~0.061 px (unchanged by rescaling) | **0.057 px** |
+| SNR | 5.4 | **5.80** |
+
+The probe holding at 0.057 px against `ball_single`'s 0.061 is the point: **enlarging the scene cost nothing in probe accuracy**, because the ball kept its pixel size. The SNR is lower purely because the signal is, exactly as $1/H^2$ says.
+
+Far band $g' \ge 7$, position RMSE in px, all arms at 12000 steps:
+
+| configuration | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `pretrained` | 0.43 | 0.84 | 1.64 | 2.78 | 4.28 | 6.10 | 8.25 | 10.71 | 13.52 | 16.67 | 20.15 | 23.96 | 28.12 | 32.61 | 37.44 | 42.62 | 48.17 | 54.12 |
+| continued JEPA | 0.35 | 0.70 | 1.51 | 2.68 | 4.21 | 6.08 | 8.27 | 10.80 | 13.66 | 16.87 | 20.40 | 24.27 | 28.47 | 33.00 | 37.85 | 43.02 | 48.53 | 54.40 |
+| constrained at $g'=g$ | 0.35 | 0.78 | 1.65 | 2.89 | 4.49 | 6.43 | 8.71 | 11.33 | 14.30 | 17.62 | 21.29 | 25.30 | 29.66 | 34.37 | 39.41 | 44.79 | 50.51 | 56.58 |
+| penalty $\lambda = 1$ | 0.54 | 0.65 | 0.72 | 0.95 | 1.47 | 2.28 | 3.30 | 4.51 | 5.92 | 7.50 | 9.21 | 11.08 | 13.16 | 15.59 | 18.51 | 22.04 | 26.21 | 31.02 |
+| **counterfactual** | 0.57 | 0.79 | **0.88** | **0.91** | **1.06** | **1.46** | **2.09** | **2.91** | **3.90** | **5.03** | **6.26** | **7.64** | **9.28** | **11.34** | **13.99** | **17.29** | **21.24** | **25.77** |
+
+**The full curve shows two things three points would hide.** The first is that the method is *worse* for the first two steps -- 0.57 px against continued training's 0.35 at $h = 1$, a ratio of 0.6 and an absolute gap of −0.2 px. It draws level at $h = 3$ and the ratio peaks at $h = 6$, which is where the constraint is defined and enforced:
+
+| $h$ | 1 | 2 | 3 | 4 | 5 | **6** | 8 | 9 | 12 | 15 | 18 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| vs continued JEPA | 0.6 | 0.9 | 1.7 | 2.9 | 4.0 | **4.2** | 3.7 | 3.5 | 3.2 | 2.7 | 2.1 |
+| vs penalty | 0.9 | 0.8 | 0.8 | 1.0 | 1.4 | **1.6** | 1.6 | 1.5 | 1.4 | 1.3 | 1.2 |
+
+So the advantage is single-peaked at the training horizon rather than monotonically decaying from it, and reporting 6, 12 and 18 alone would have suggested the latter. The second is that the absolute gap grows monotonically throughout, from −0.2 px to +28.6 px, so the narrowing ratio is a statement about the baselines' error exploding rather than about the method's advantage eroding.
+
+**The advantage survives to three times the training horizon.** Against continued training the method is 4.2x better at $h = 6$, 3.2x at $h = 12$ and 2.1x at $h = 18$. The ratio narrows while the absolute gap widens, from 4.6 px to 28.6 px.
+
+**And the rate finding of §6.16 holds, more sharply.** Growth from $h = 6$ to $h = 18$:
+
+| | $h_{18}/h_6$ |
+|---|---|
+| `pretrained` | 8.9 |
+| continued JEPA | 8.9 |
+| penalty | 13.6 |
+| **counterfactual** | **17.7** |
+
+The constrained model's error grows twice as fast as the unconstrained one's once past the boundary. That is the expected shape -- the constraint is defined and enforced at $\text{horizon} = 6$, so it flattens the curve inside that window and says nothing outside it -- and three times the horizon makes it unmistakable rather than marginal. A method that buys a flat curve inside its horizon does not buy a flat curve beyond it.
+
+Two caveats. $h = 18$ keeps 932 far-band windows against $h = 6$'s 5917, a 16% acceptance that matches the 18% predicted from the geometry; those surviving windows are a selected subpopulation, higher and rising, so **columns at different $h$ are not the same windows**. Within a row they are: each row comes from one evaluation read through `position_rmse_by_step`, so the growth rates above are clean. And $C_0/\varepsilon$ is 3.8 here, the lowest of any model but `spatial`'s 2.0, because the larger view inflates the factual violation in world units and $\varepsilon$ with it -- the constraint is looser on this scene than anywhere else, which makes these numbers conservative.
+
 ---
 
 ## 7. How to read a row
@@ -492,6 +685,9 @@ Getting even that far took two corrections that had nothing to do with the quest
 
 | item | status |
 |---|---|
+| **counterfactual contact physics** | **never posed.** The counterfactual is always free fall: the target is a parabola and windows whose counterfactual would bounce are rejected (§6.14, §6.17). Whether the method could teach a counterfactual *bounce* is untested, and testing it needs the restitution inside the identity — new theory, not a new run |
+| **horizons past $h = 8$** | **not askable in these scenes (§6.16).** The contact-free episodes are 16 frames, and on the bouncing scene the far band has *zero* windows at $h = 12$ because every counterfactual path touches down inside the horizon. Reaching further needs a scene at a larger spatial scale, which costs probe accuracy |
+| **budgets are not set by one rule** | `narrow` has $C_0/\varepsilon = 17.5$ and got 36000 steps; the square has 100.9 and got 24000 — the order is inverted against §6.7's rule. Each run's own numbers are sound, but "which model needs how much budget" cannot be read across models |
 | **the certificate in the regime the story rests on** | **open, and the explanation changed (§6.9).** Not a budget problem: 36000 steps reaches $C_{\text{train}} = 0.69\varepsilon$ on `ball_single` and the evaluator still measures $1.49\varepsilon$ on held-out windows. The train-to-evaluation gap *widens* with the budget. Needs a change that makes the constraint generalise — more counterfactual windows, or a tolerance that accounts for the gap — not more steps |
 | **why `ball_ax` fails (§6.12)** | **open.** Both halves of the 2D counterfactual starve on this checkpoint, including the scalar half that `ball_single` solves in 4000 steps. The four-coordinate action schema, the retrained action encoder and the dataset are all unexcluded. Next probe: run the `ball_single` counterfactual on a `ball_ax`-schema model trained with $a_x$ present but constant, to separate schema from data |
 | **corrected staged tolerance** | **not run.** The staged arms on `ball_ax` and `ball_square` are invalid — each stage recalibrated $\varepsilon$ against the damaged model. `--epsilon` now pins it; the experiment has not been redone |
@@ -544,6 +740,20 @@ Timing, on 2x A100-80G with 2 jobs in flight: post-training 523 s median (4000 s
 ---
 
 ## 10. Update log
+
+### 2026-11-05 — budgets matched across every long run, three times the horizon, and six cards idle for three hours
+
+**Every long counterfactual run now has a baseline at its own budget (§6.18).** Four models had compared a long method run against 4000-step baselines, because the reasoning that set the method's budget came from $C_0/\varepsilon$ and said nothing about the baselines'. Matched: 11.2x on `ball_single`, 6.8x on `ball_narrow`, 11.9x on `square_single`, 6.3x on `bounce_single_r08`, against the 10.3x, 9.0x, 12.1x and 8.8x previously reported against `pretrained`. No conclusion overturned. Where the baselines benefit is itself informative -- nothing on the datasets that hold gravity exactly fixed, a clear gain on the bouncing data whose 32-frame episodes give six times the windows.
+
+**A finding the audit produced rather than confirmed.** On `ball_narrow` a fixed penalty at $\lambda = 1$ reads 17.5 px at 4000 steps, indistinguishable from the gravity-blind baselines, and reaches 5.670 px with a response of 0.768 at 36000 -- within 36% of the method. On `ball_single` it stays at 17.046 px. §6.3's claim that the penalty needs a two-order sweep survives, but only in the regime where the data carries no gravity information; §6.3, §6.8 and §6.9 now say so.
+
+**The horizon question is answerable after all (§6.19).** §6.16 had reported $h = 8$ as the ceiling and the obstacle as geometric: keeping the counterfactual in frame for $H$ steps needs a view of about $g'(H\,\mathrm{d}t)^2/2$, so the signal in pixels falls as $1/H^2$ and no choice of $g$ or $\mathrm{d}t$ escapes it. `single_far` pays that cost deliberately -- view 40 instead of 13, 32 frames, ball radius scaled with the view so it keeps its pixel size. The prediction held: 0.328 px of signal, probe 0.057 px against `ball_single`'s 0.061, SNR 5.80 against a predicted 5.4. The advantage reaches three times the training horizon, 4.2x at $h = 6$ and 2.1x at $h = 18$, with the absolute gap widening from 4.6 px to 28.6 px; and §6.16's rate finding sharpens, the constrained model's error growing 17.7x from $h = 6$ to $h = 18$ against the baselines' 8.9x.
+
+**Two shortcuts measured and rejected.** Shortening the context to buy horizon ($\text{history}\,4 + \text{horizon}\,12$ fits the existing 16-frame episodes, needing no new data) collapses the constrained model from 2.433 px to 44.883 px and its response from 0.935 to 0.068: the predictor is built with `num_frames = 8` and uses them. Raising `sigreg_weight`, the remedy the bouncing data needed, is harmful on `single_far` -- SNR 1.82 against 0.09's 5.80.
+
+**And `single_far` settled an attribution §6.15 could not.** The bouncing collapse co-varied with episode length, since those episodes are 32 frames against the contact-free 16. `single_far` is 32 frames, 19 windows per episode, contact-free, and does not collapse. It is the contacts.
+
+**Three hours of six idle cards, and the monitor reported them as idle-and-fine.** The SLURM controller restarted at 09:02; every `srun` into an existing allocation then failed with a protocol authentication error while the nodes themselves stayed healthy. Three failures compounded. The batch scripts had no retry, so each loop burned through its remaining variants in under a minute. The conclusion "the cluster is down" was drawn from `srun` alone without trying `ssh`, which worked the whole time. And `gpuwatch` polls through `srun` too, so it kept serving its 09:27 snapshot -- cards at 0%, which read as idle-but-healthy rather than as no data. Fixed: `srun_retry` with five attempts, `gpuwatch` polling over ssh first with `-n` so it does not eat the job list off the loop's stdin, and the work now driven over ssh directly.
 
 ### 2026-11-02 — first complete suite, and a units bug in the certificate
 
